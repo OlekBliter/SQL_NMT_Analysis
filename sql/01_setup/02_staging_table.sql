@@ -41,4 +41,4 @@ CREATE UNLOGGED TABLE staging_nmt_raw (
 );
 
 -- Note: Run the following psql meta-command in terminal/psql console:
--- \copy nmt_2025.staging_nmt_raw FROM 'D:/Degree/AI-ML_roadmap_learning/DataStack/SQL/SQL_NMT_Analysis/data/raw/Odata2025File.csv' WITH (FORMAT csv, HEADER true, DELIMITER ';', QUOTE '"', ENCODING 'UTF-8');
+-- \copy nmt_2025.staging_nmt_raw FROM '/data/raw/Odata2025File.csv' WITH (FORMAT csv, HEADER true, DELIMITER ';', QUOTE '"', ENCODING 'UTF-8');
