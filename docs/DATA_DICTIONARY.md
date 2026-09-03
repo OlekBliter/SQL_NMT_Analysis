@@ -1,66 +1,96 @@
-# Технічна документація БД: NMT 2025 Analytics
+# Database Documentation: NMT 2025 Analytics
 
-## 1. Архітектурний патерн
-База даних спроєктована за принципом, наближеним до **«Схеми зірки» (Star Schema)** та приведена до Третьої нормальної форми (3NF). 
-Замість однієї широкої розрідженої таблиці (де 60% комірок були пустими `NULL`), ми маємо центральну **таблицю фактів** (результати) та **таблиці вимірів** (учасники, школи, предмети). Це ідеальна структура для швидких агрегацій та експорту готових датафреймів у Pandas.
+> **NMT** — Ukraine's National Multi-subject Test (Національний мультипредметний тест), the standardized university entrance exam.
 
----
+## 1. Architecture Overview
 
-## 2. Структура таблиць (Data Dictionary)
+The database follows a **Star Schema** pattern, normalized to **Third Normal Form (3NF)**.
 
-### 🔹 `subjects` (Довідник предметів)
-Маленька статична таблиця (Dimension).
-* **`subject_code` (VARCHAR, PK):** Короткий код предмета (напр., `'Ukr'`, `'Math'`). Використовується замість сурогатного INT ID для кращої читабельності запитів.
-* **`subject_name` (VARCHAR):** Повна українська назва.
-* **`is_mandatory` (BOOLEAN):** Ознака обов'язкового предмета. Корисно для фільтрації, коли треба порівняти лише вибіркові предмети.
-
-### 🔹 `institutions` (Заклади освіти)
-Таблиця вимірів (Dimension), яка містить унікальні школи, ліцеї та коледжі. Усі дублікати з сирого файлу злиті завдяки ідентифікаторам та ієрархії.
-* **`institution_id` (SERIAL, PK):** Унікальний внутрішній ID.
-* **`edebo_id` / `edrpou` (VARCHAR):** Офіційні державні ідентифікатори (ЄДЕБО та ЄДРПОУ). 
-* **`institution_name`, `institution_type` (TEXT / VARCHAR):** Назва та тип (ЗЗСО, ліцей тощо).
-* **`reg_name`, `area_name`, `ter_name` (VARCHAR):** Географічна ієрархія (Область -> Район -> Місто/Село). 
-
-### 🔹 `participants` (Учасники тестування)
-Таблиця вимірів (Dimension). Містить демографію.
-* **`out_id` (UUID, PK):** Оригінальний ідентифікатор УЦОЯО. Використання UUID гарантує, що при об'єднанні даних за різні роки не буде колізій.
-* **`birth_year` (SMALLINT):** Рік народження (оптимальніше за INT).
-* **`gender` (VARCHAR):** Стать.
-* **`participant_status` (VARCHAR):** Тип учасника (Випускник минулих років, поточного тощо).
-* **`ter_type` (VARCHAR):** Тип території (місто/село). **Важлива колонка для аналізу нерівності** (Urban/Rural gap).
-* **`reg_name`, `area_name`, `ter_name` (VARCHAR):** Місце проживання учасника.
-* **`institution_id` (INT, FK):** Посилання на школу. *Увага: для випускників минулих років тут буде `NULL`.*
-
-### 🔹 `exam_results` (Факти: Результати іспитів)
-Центральна таблиця (Fact Table). Створена методом Unpivot — кожен зданий предмет учасника є окремим рядком (1 учасник = 4 рядки).
-* **`result_id` (BIGSERIAL, PK):** Сурогатний ключ рядка.
-* **`out_id` (UUID, FK):** Хто здавав.
-* **`subject_code` (VARCHAR, FK):** Що здавав.
-* **`test_date` (DATE):** Дата тестування (приведена до ISO-формату `YYYY-MM-DD`).
-* **`status` (VARCHAR):** Сирий текстовий статус (Зараховано, Анульовано, Не з'явився).
-* **`raw_score` / `scaled_score` (NUMERIC):** Тестовий (до ~32) та рейтинговий (100-200) бали. Використано тип `NUMERIC(5,2)`, який гарантує відсутність помилок округлення чисел із рухомою комою (на відміну від `FLOAT` або `REAL`).
-* **`is_present` (BOOLEAN, GENERATED ALWAYS AS):** Віртуальна колонка, яка розраховується автоматично на льоту. Якщо статус містить варіації фрази "не з'явився" — повертає `FALSE`. 
-* **`pt_reg_name`, `pt_area_name`, `pt_ter_name` (VARCHAR):** Локація пункту тестування (ТЕЦ). 
+Instead of a single wide, sparse table (where ~60% of cells were `NULL`), the schema is organized into a central **fact table** (exam results) and several **dimension tables** (participants, institutions, subjects). This structure is optimized for fast aggregations.
 
 ---
 
-## 3. Зв'язки (Relationships & Constraints)
+## 2. Table Reference
 
-Усі зв'язки спроєктовані з урахуванням цілісності даних (Referential Integrity):
-1. **`exam_results.out_id` ➔ `participants.out_id` (Багато-до-одного, N:1)**
-   * *Політика:* `ON DELETE CASCADE`. Якщо видалити учасника, всі його результати іспитів видаляться автоматично (щоб не лишалося "сирітських" записів).
-2. **`participants.institution_id` ➔ `institutions.institution_id` (N:1)**
-   * *Політика:* `ON DELETE SET NULL`. Якщо школу розформували й видалили з довідника, історія учасника залишається, просто поле школи стає `NULL`.
-3. **`exam_results.subject_code` ➔ `subjects.subject_code` (N:1)**
-   * *Політика:* Жорстка прив'язка (за замовчуванням). 
+### 🔹 `subjects` — Subject Reference Table
+Small static dimension table.
+
+| Column | Type | Description |
+|---|---|---|
+| `subject_code` | `VARCHAR`, PK | Short subject code (e.g. `'Ukr'`, `'Math'`). Used instead of a surrogate `INT` ID for query readability. |
+| `subject_name` | `VARCHAR` | Full subject name (Ukrainian). |
+| `is_mandatory` | `BOOLEAN` | Flags mandatory subjects. Useful for filtering when comparing only elective subjects. |
+
+### 🔹 `institutions` — Educational Institutions
+Dimension table containing unique schools, lyceums, and colleges. Duplicates from the raw source file have been merged using official identifiers and hierarchy.
+
+| Column | Type | Description |
+|---|---|---|
+| `institution_id` | `SERIAL`, PK | Internal unique ID. |
+| `edebo_id` / `edrpou` | `VARCHAR` | Official state identifiers (EDEBO — Unified State Electronic Database on Education, and EDRPOU — Unified State Register of Enterprises and Organizations). |
+| `institution_name` | `TEXT` | Institution name. |
+| `institution_type` | `VARCHAR` | Institution type (general secondary school, lyceum, etc.). |
+| `reg_name`, `area_name`, `ter_name` | `VARCHAR` | Geographic hierarchy (Region → District → City/Village). |
+
+### 🔹 `participants` — Test Participants
+Dimension table containing demographic data.
+
+| Column | Type | Description |
+|---|---|---|
+| `out_id` | `UUID`, PK | Original UCEQA (Ukrainian Center for Educational Quality Assessment) identifier. Using UUID prevents collisions when merging data across multiple years. |
+| `birth_year` | `SMALLINT` | Birth year (more storage-efficient than `INT`). |
+| `gender` | `VARCHAR` | Gender. |
+| `participant_status` | `VARCHAR` | Participant category (current-year graduate, prior-year graduate, etc.). |
+| `ter_type` | `VARCHAR` | Territory type (urban/rural). **Key column for inequality analysis** (Urban/Rural gap). |
+| `reg_name`, `area_name`, `ter_name` | `VARCHAR` | Participant's place of residence. |
+| `institution_id` | `INT`, FK | Reference to school. *Note: `NULL` for prior-year graduates.* |
+
+### 🔹 `exam_results` — Fact Table
+Central fact table, built via an **unpivot** transformation — each exam subject taken by a participant is a separate row (1 participant → up to 4 rows).
+
+| Column | Type | Description |
+|---|---|---|
+| `result_id` | `BIGSERIAL`, PK | Surrogate row key. |
+| `out_id` | `UUID`, FK | Who took the exam. |
+| `subject_code` | `VARCHAR`, FK | Which subject. |
+| `test_date` | `DATE` | Exam date, normalized to ISO format (`YYYY-MM-DD`). |
+| `status` | `VARCHAR` | Raw text status (Passed, Cancelled, No-show, etc.). |
+| `raw_score` / `scaled_score` | `NUMERIC` | Raw test score (up to ~32) and scaled rating score (100–200). Stored as `NUMERIC(5,2)` to eliminate floating-point rounding errors (unlike `FLOAT` or `REAL`). |
+| `is_present` | `BOOLEAN`, `GENERATED ALWAYS AS` | Computed virtual column. Returns `FALSE` when the status matches any variation of "did not appear". |
+| `pt_reg_name`, `pt_area_name`, `pt_ter_name` | `VARCHAR` | Location of the testing center (as opposed to the participant's residence). |
 
 ---
 
-## 4. Індексування (Performance Tuning)
+## 3. Relationships & Constraints
 
-У PostgreSQL автоматично створюються індекси лише для `PRIMARY KEY` та `UNIQUE`. Для `FOREIGN KEY` індекси треба писати руками, що й зроблено.
-* **`idx_exam_results_out_id` та `idx_participants_institution_id`:** B-Tree індекси на зовнішні ключі. Вони прискорюють будь-які `JOIN` операції у 10-100 разів на великих масивах.
-* **`idx_exam_results_subject_score` (Частковий композитний індекс):** 
-  `ON exam_results(subject_code, scaled_score) WHERE is_present = TRUE;`
-  Індекс будується *лише* для тих, хто реально прийшов на іспит. Коли ви будете рахувати перцентилі, дисперсію, чи медіани балів для конкретного предмета, запит взагалі не читатиме саму таблицю, а візьме готові відсортовані дані прямо з індексу (Index-Only Scan).
-* **`idx_participants_ter_type`:** Індекс для швидкого групування даних при дослідженні впливу фактора «місто vs село» на успішність.
+All relationships are designed with referential integrity in mind:
+
+1. **`exam_results.out_id` → `participants.out_id`** (Many-to-one, N:1)
+   - **Policy:** `ON DELETE CASCADE` — deleting a participant automatically deletes all their exam results, preventing orphaned rows.
+
+2. **`participants.institution_id` → `institutions.institution_id`** (N:1)
+   - **Policy:** `ON DELETE SET NULL` — if an institution is dissolved and removed from the reference table, the participant's history is preserved; the institution field is simply set to `NULL`.
+
+3. **`exam_results.subject_code` → `subjects.subject_code`** (N:1)
+   - **Policy:** Strict foreign key enforcement (default behavior).
+
+- Entity Relationship Diagram:
+![erd](erd.png)
+
+---
+
+## 4. Indexing & Performance Tuning
+
+PostgreSQL automatically creates indexes only for `PRIMARY KEY` and `UNIQUE` constraints. Indexes on `FOREIGN KEY` columns must be created manually, which has been done here.
+
+- **`idx_exam_results_out_id`** and **`idx_participants_institution_id`**
+  B-Tree indexes on foreign keys. These speed up `JOIN` operations by 10–100x on large datasets.
+
+- **`idx_exam_results_subject_score`** (Partial composite index)
+  ```sql
+  ON exam_results(subject_code, scaled_score) WHERE is_present = TRUE;
+  ```
+  Built only over rows where the participant actually attended the exam. When computing percentiles, variance, or medians for a given subject, the query can be satisfied entirely from the index (Index-Only Scan) without touching the base table.
+
+- **`idx_participants_ter_type`**
+  Speeds up grouping when analyzing the "urban vs. rural" factor's effect on exam performance.
