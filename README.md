@@ -227,7 +227,7 @@ The scaling of the NMT creates a severe deflation of scores for graduates who ch
 
 ### Module 5 — Student Disciplinary Asymmetry: STEM vs. Humanities (`05_asymmetrical_student_stem_vs_humanities`)
 
-**Focus:** exploring the intrapersonal gap between the sciences and the humanities at the level of the individual student ($\Delta_{\text{Asymmetry}} = \text{score\_math} - \frac{\text{score\_ukr} + \text{score\_hist}}{2}$), psychometric typing of graduates into 5 intellectual archetypes, identification of gender-spatial segregation, and cross-analysis of the choice of the 4th subject.
+**Focus:** exploring the intrapersonal gap between the sciences and the humanities at the level of the individual student, psychometric typing of graduates into 5 intellectual archetypes, identification of gender-spatial segregation, and cross-analysis of the choice of the 4th subject.
 - **Evaluated vectors:** STEM vector (Mathematics) vs. Humanities core (Ukrainian language + History of Ukraine).
 
 **Hypothesis 1 (The Asymmetry Imbalance):**  
