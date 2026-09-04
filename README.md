@@ -233,8 +233,8 @@ The scaling of the NMT creates a severe deflation of scores for graduates who ch
 **Hypothesis 1 (The Asymmetry Imbalance):**  
 The distribution of asymmetry among Ukrainian graduates is sharply shifted towards humanitarian thinking; the share of pronounced humanitarians is many times higher than the share of pure STEM specialists.  
 * **Result: CONFIRMED (RATIO 10.4 : 1).**  
-  * **Humanities profile:** accounts for **23.1% of the sample (66,985 students)** with an average gap $\Delta = \mathbf{-28.5}$ child ($\text{Math} = 123.3$ vs $\text{Hum} = 151.8$).
-  * **STEM majors:** make up only **2.2% of the sample (6,462 students)** with a median gap $\Delta = \mathbf{+24.4}$ child ($\text{Math} = 168.2$ vs $\text{Hum} = 143.8$).
+  * **Humanities profile:** accounts for **23.1% of the sample (66,985 students)** with an average gap $\Delta = \mathbf{-28.5}$ points ($\text{Math} = 123.3$ vs $\text{Hum} = 151.8$).
+  * **STEM majors:** make up only **2.2% of the sample (6,462 students)** with a median gap $\Delta = \mathbf{+24.4}$ points ($\text{Math} = 168.2$ vs $\text{Hum} = 143.8$).
   * For every pronounced “techie” in Ukraine, there are over 10 pronounced “humanities.” Even in the “Balanced Base” group (51.7% of the sample), the average delta is **-8.9 points** in favor of language and history.
   * **Gender Polarity:** STEM majors are **67.6% male** (2:1 skew), while Humanities majors are **64.5% female**. The Balanced group is completely equal (49.5% female / 50.5% male).
 
