@@ -140,8 +140,6 @@ The regions of Ukraine, according to the spatial distribution of knowledge, fall
   * **Zaporizhzhya region:** **79.7%** of testing falls on Zaporizhzhia due to the proximity of the districts to the zone of active hostilities and temporary occupation.
   * **Donetsk and Luhansk regions:** 0% of participants in historical centers; 100% of the sample is represented by relocated institutions and free periphery with medians of **137.50** and **137.00**, respectively.
 
----
-
 **SQL module tools:**
 
 The query is optimized for single-pass analytical processing of large amounts of data:
@@ -156,11 +154,49 @@ The query is optimized for single-pass analytical processing of large amounts of
 
 **Files:** [`sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql`](sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql) · [результати (CSV)](results/02_capital_monopoly_and_regional_centralization.csv)
 
-### Module 3 — Resilience Gap and Rural Polarization (`03_resilience_gap_and_rural_polarization`)
+### Module 3 — Rural Resilience and Institutional Polarization (`03_resilience_gap_and_rural_polarization`)
 
-**Focus:** TBD
+**Focus:** research into educational inequality along the "City - Village - Abroad" axis, empirical testing of the effectiveness of the rural lyceum reform (The Rural Lyceum Illusion), detection of intra-school polarization ("one genius effect"), and identification of hidden rural flagships of academic resilience.
 
-*Hypotheses, tools, results — TBD.*
+**Hypothesis 1 (The Macro Divide):**  
+Rural areas demonstrate a systemic decline in the lower threshold of knowledge and an increased dropout rate compared to urban institutions and foreign testing centers.  
+* **Result: CONFIRMED.**  
+  * The median of rural graduates (**133.67**) is **3.66 points** lower than the urban (**137.33**) and **4.66 points** lower than the foreign (**138.33**). The lower quartile in rural areas falls to **123.33** (versus 127.33 in the city).
+  * The share of graduates who received $0.0$ points in at least one mandatory subject reaches **15.72%** in the village (versus **11.37%** in the city and **8.23%** abroad).
+  * Share of academic elite ($\ge 180$ points) in the village is half as low as in the city: **0.78%** versus **1.59%**.
+  * Foreign graduates (3,050 people) formed the phenomenon of a compressed distribution: the lowest interquartile range ($IQR = 16.33$), the lowest dropout rate (8.23%), but almost complete absence of excellent students (only **0.39%**).
+
+![The Macro Divide](images/03_macro_divide_benchmark.png)
+
+**Hypothesis 2 (The Rural Lyceum Illusion):**  
+The transformation of ordinary rural schools into "lyceums" did not provide a qualitative leap in the training of graduates and did not form a reliable protective threshold of knowledge.  
+* **Result: 100% CONFIRMED (MAIN INSTITUTIONAL CONCLUSION).**  
+  * Rural lyceums (39,831 students, 65.8% of the village sample) showed **full statistical parity** with regular secondary general education schools (13,882 students):
+    * Absolutely identical median: **134.33** vs **134.33**;
+    * Identical lower threshold ($Q_1$): **123.67** vs **123.00**;
+    * Almost the same percentage of failure: **15.27%** vs **16.15%**.
+  * The share of excellent students in regular rural schools turned out to be even higher than in lyceums: **1.02%** versus **0.77%**. The legal renaming of institutions did not affect academic results.
+  * The critical risk zone is vocational education institutions (VET) and colleges in villages: the failure rate reaches **24.89%** and **21.10%**, respectively, with medians of $126.00$ and $128.33$.
+
+![The Rural Lyceum Illusion](images/03_rural_lyceum_illusion_meso.png)
+
+**Hypothesis 3 (Rural Resilience Outliers vs. "One Genius"):**  
+Despite the systemic backwardness of rural areas, a large-scale cluster of rural schools has been formed in Ukraine, which consistently outperform urban institutions in terms of the quality of education.  
+* **Result: CONFIRMED AND EXTENDED.**  
+  * **Flagship schools of sustainability:** **718 institutions (32.2%** of the rural network), where **16,694 graduates (35.9%)** studied, have an average median of **142.35 points**, which is **+5.02 points higher than the average urban benchmark of Ukraine (137.33)**.
+  * **Polarized schools ("one genius effect"):** recorded only in **58 institutions (2.6%)**, where in the presence of single 180-scorers, the institution's median ($129.75$) falls below the average rural bottom.
+  * **Typical rural schools:** cover **1,454 institutions (65.2%)** with 28,095 students and an average median of **129.84 points**.
+
+![Rural School Archetypes](images/03_rural_school_archetypes_micro.png)
+
+**SQL module tools:**
+* Cascade calculation of quantiles through `PERCENTILE_CONT(0.25 | 0.50 | 0.75) WITHIN GROUP (...)`.
+* Calculating the interquartile range ($IQR$) and the coefficient of variation ($CV = \text{STDDEV} / \text{AVG}$) directly in aggregate queries.
+* Multi-level CTE with generation of dynamic national benchmarks (`national_rural_median`, `national_urban_median`) and cross-connection (`CROSS JOIN`).
+* Boolean predicate logic `BOOL_OR(mandatory_avg_score >= 180)` to isolate anomalies of intra-school segregation.
+* Window coating particles through a single-pass `COUNT(*) / SUM(COUNT(*)) OVER ()`.
+
+**Files:** [`sql/02_analytics/03_resilience_gap_and_rural_polarization.sql`](sql/02_analytics/03_resilience_gap_and_rural_polarization.sql) · results: [`macro (CSV)`](results/03_resilience_gap_and_rural_polarization_macro.csv) · [`meso (CSV)`](results/03_resilience_gap_and_rural_polarization_meso.csv) · [`micro (CSV)`](results/03_resilience_gap_and_rural_polarization_micro.csv)
 
 ### Module 4 — Strategy for choosing the 4th subject (`04_elective_subject_strategy_and_student_cohorts`)
 

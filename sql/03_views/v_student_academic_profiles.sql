@@ -35,7 +35,10 @@ SELECT
     ) AS overall_avg_score,
 
     MAX(cer.test_date) AS test_date,
-    COUNT(cer.subject_code) AS total_subjects_completed
+    COUNT(cer.subject_code) AS total_subjects_completed,
+
+    BOOL_OR(scaled_score = 0.0) AS failed,
+    BOOL_OR(scaled_score = 0.0 AND subject_code IN ('Math', 'Ukr', 'Hist')) AS failed_mandatory
 
 FROM clean_exam_results cer
 GROUP BY
