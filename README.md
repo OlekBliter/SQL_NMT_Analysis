@@ -98,11 +98,57 @@ Day-over-Day deltas contain sharp anomalous spikes that exceed the natural varia
 
 **Files:** [`sql/02_analytics/01_chronos_and_exam_fatigue_dynamics.sql`](sql/02_analytics/01_chronos_and_exam_fatigue_dynamics.sql) · [results (CSV)](results/01_chronos_and_exam_fatigue_dynamics.csv)
 
-### Module 2 — Monopoly of regional centers (`02_capital_monopoly_and_regional_centralization`)
+### Module 2 — Monopoly of regional centers and regional centralization (`02_capital_monopoly_and_regional_centralization`)
 
-**Focus:** TBD
+**Focus:** quantitative measurement of spatial educational inequality in the context of "Regional Center vs. Periphery", calculation of the localization index of the academic elite ($LQ$), assessment of the depth of decline in the basic level of knowledge in the regions and typology of education systems in 24 regions of Ukraine.
+- **Coverage:** 22 representative regions with operating regional centers (Kyiv agglomeration consolidated as a single educational basin) + 2 front-line regions with special status (Donetsk, Luhansk).
 
-*Hypotheses, tools, results — TBD.*
+**Hypothesis 1 (Elite Concentration / Law of Educational Oligopoly):**  
+Concentration of academic elite (average score $\ge 180$ in all disciplines) in regional centers disproportionately exceeds their share in the total number of graduates in the region ($LQ > 1.0$).
+* **Result: CONFIRMED FOR 95.5% OF REGIONS.**
+  * In 21 out of 22 regions $LQ > 1.0$ (average national index — **1.36**).
+  * **10 regions** entered the "Highly Centralized" cluster ($LQ \in [1.40; 1.68]$), where the main city concentrates a critical mass of excellent students.
+  * Peak monopoly indicators were recorded in **Chernihiv ($LQ = 1.68$)**, **Transcarpathian ($LQ = 1.64$)** and **Rivne ($LQ = 1.61$)** regions.
+  * At the same time, no region crossed the threshold of extreme hypermonopoly ($\ge 1.80$), since averaging grades across 4 disciplines naturally smooths out peak grades in individual subjects.
+
+**Hypothesis 2 (The Periphery Floor Gap):**  
+The periphery loses to the center not only in terms of the share of excellent students, but also demonstrates a critical decline in the basic level: a significantly lower median and an increased risk of failing the test (Fail Rate).
+* **Result: 100% CONFIRMED (MAIN SYSTEM CONCLUSION).**
+  * In **all 22 studied regions** the median score of the center exceeds the median of the periphery ($\Delta_{\text{Median}} > 0$). The average national gap is **+4.52 points**.
+  * In **all 22 regions** the risk of failing the test in the periphery is significantly higher than in the regional center (`fail_rate_ratio` $> 1.0$, average — **1.51x**).
+
+**Hypothesis 3 (Regional Typology & Outliers):**  
+The regions of Ukraine, according to the spatial distribution of knowledge, fall into stable topological models with pronounced poles and anomalies.
+* **Result: CONFIRMED.** 4 specific educational models were identified: Polycentric, Highly Centralized, Absolute Leader Model, and Frontier.
+
+
+**Key insights and spatial anomalies**
+* **The "Antimonopoly Phenomenon" of Volyn (The Only Balanced Region):**  
+  Volyn region became the only region of Ukraine with an index $LQ < 1.0$ (**0.97**), where the periphery prepared a higher percentage of 180-pointers (**1.57%**) than the regional center Lutsk (**1.50%**). Thanks to a network of strong specialized lyceums in cities of regional significance (Kovel, Novovolynsk, Volodymyr), the region has formed a horizontal educational network without the leaching of talented students to the regional capital.
+* **Pole of "double risk": Chernihiv and Kirovohrad regions:**  
+  * **Chernihiv region** has an absolute anti-record median gap (**+7.50 points**) and failure ratio (**1.99x**): in the districts **16.14%** of graduates fail exams compared to **8.11%** in Chernihiv.
+  * **Kirovohrad region** records a similar gap: $\Delta_{\text{Median}} = \mathbf{+7.00}$ points, and the risk of collapse in the periphery is **1.93 times** higher (18.29% vs 9.47%). In these areas, the periphery functions in a state of severe resource deprivation.
+* **Lviv quality benchmark:**  
+  Lviv region maintains its undisputed leadership in the country: the median of Lviv (**146.50**) and the median of districts (**142.00**) are the highest in Ukraine. Moreover, the periphery of Lviv region surpasses the regional centers of **18 other regions** (including Odessa, Kharkiv, Dnipro and Vinnytsia) in terms of the quality of knowledge, and the concentration of excellent students in districts (**2.11%**) is abnormally high for non-metropolitan territories.
+* **Frontier distortions:**  
+  * **Zaporizhzhya region:** **79.7%** of testing falls on Zaporizhzhia due to the proximity of the districts to the zone of active hostilities and temporary occupation.
+  * **Donetsk and Luhansk regions:** 0% of participants in historical centers; 100% of the sample is represented by relocated institutions and free periphery with medians of **137.50** and **137.00**, respectively.
+
+---
+
+**SQL module tools:**
+
+The query is optimized for single-pass analytical processing of large amounts of data:
+1. **Algebraic optimization of the concentration index ($LQ$):**  
+   Instead of the unstable division of two rounded quotients, an equivalent algebraic transformation is applied:
+   $$LQ = \frac{\text{center\_high} \times \text{total\_part}}{\text{total\_high} \times \text{center\_part}}$$
+   This completely eliminated the floating-point accumulation error and reduced the computational cost of the engine.
+2. **Parallel Filtered Aggregation:**  
+   Using syntax `COUNT(*) FILTER (...)` and `PERCENTILE_CONT(0.5) WITHIN GROUP (...) FILTER (...)` allowed to combine the indicators of total volume, center and periphery in a single CTE without difficult `SELF-JOIN`.
+3. **Consolidation of the metropolitan area:**  
+   Conditional merger `м.Київ` and `Київська область` solved the problem of an isolated metropolitan enclave by forming a representative metropolitan model with 37,946 participants.
+
+**Files:** [`sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql`](sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql) · [результати (CSV)](results/02_capital_monopoly_and_regional_centralization.csv)
 
 ### Module 3 — Resilience Gap and Rural Polarization (`03_resilience_gap_and_rural_polarization`)
 

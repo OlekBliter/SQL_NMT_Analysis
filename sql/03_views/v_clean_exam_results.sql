@@ -21,14 +21,38 @@ SELECT
         ELSE 'Не визначено'
     END AS macro_location,
 
-    p.institution_id,
+    i.institution_id,
     i.institution_name,
     i.institution_type,
     i.reg_name,
     i.area_name,
     i.ter_name,
-    CONCAT_WS(', ', i.reg_name, i.area_name, i.ter_name) AS full_institution_location
+    CONCAT_WS(', ', i.reg_name, i.area_name, i.ter_name) AS full_institution_location,
+    CASE
+        WHEN i.institution_id IS NULL THEN FALSE
 
+        WHEN i.reg_name IN ('м.Київ', 'м. Київ')
+             OR TRIM(REGEXP_REPLACE(i.area_name, '^м\.\s*', '')) IN (
+                 'Київ', 'Дніпро', 'Житомир', 'Запоріжжя', 'Кропивницький',
+                 'Львів', 'Миколаїв', 'Одеса', 'Полтава', 'Суми',
+                 'Харків', 'Херсон', 'Черкаси', 'Чернігів',
+                 'Донецьк', 'Луганськ'
+             ) THEN TRUE
+
+        WHEN i.ter_name ~* '^м\.\s*' AND (
+            TRIM(REGEXP_REPLACE(i.ter_name, '^м\.\s*', '')) IN (
+                'Вінниця', 'Луцьк', 'Ужгород', 'Івано-Франківськ',
+                'Рівне', 'Тернопіль', 'Хмельницький', 'Чернівці',
+                'Донецьк', 'Луганськ'
+            )
+            OR (
+                TRIM(REGEXP_REPLACE(i.ter_name, '^м\.\s*', '')) = 'Миколаїв' 
+                AND i.reg_name = 'Миколаївська область'
+            )
+        ) THEN TRUE
+
+        ELSE FALSE
+    END AS is_regional_center
 FROM exam_results er
 JOIN participants p 
     ON er.out_id = p.out_id
