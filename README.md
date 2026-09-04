@@ -152,7 +152,7 @@ The query is optimized for single-pass analytical processing of large amounts of
 3. **Consolidation of the metropolitan area:**  
    Conditional merger `м.Київ` and `Київська область` solved the problem of an isolated metropolitan enclave by forming a representative metropolitan model with 37,946 participants.
 
-**Files:** [`sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql`](sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql) · [результати (CSV)](results/02_capital_monopoly_and_regional_centralization.csv)
+**Files:** [`sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql`](sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql) · [results (CSV)](results/02_capital_monopoly_and_regional_centralization.csv)
 
 ### Module 3 — Rural Resilience and Institutional Polarization (`03_resilience_gap_and_rural_polarization`)
 
@@ -198,11 +198,44 @@ Despite the systemic backwardness of rural areas, a large-scale cluster of rural
 
 **Files:** [`sql/02_analytics/03_resilience_gap_and_rural_polarization.sql`](sql/02_analytics/03_resilience_gap_and_rural_polarization.sql) · results: [`macro (CSV)`](results/03_resilience_gap_and_rural_polarization_macro.csv) · [`meso (CSV)`](results/03_resilience_gap_and_rural_polarization_meso.csv) · [`micro (CSV)`](results/03_resilience_gap_and_rural_polarization_micro.csv)
 
-### Module 4 — Strategy for choosing the 4th subject (`04_elective_subject_strategy_and_student_cohorts`)
+### Module 4 — Selection strategies and academic profile of the 4th subject (`04_elective_subject_strategy_and_student_cohorts`)
 
-**Focus:** TBD
+**Focus:** research into behavioral patterns of choosing an elective discipline, measuring the academic background of applicants through the prism of the mandatory core, assessing the absorption of weak students ("safe harbor effect"), and quantifying the scale deflationary penalty of exact disciplines (The STEM Penalty).
 
-*Hypotheses, tools, results — TBD.*
+**Hypothesis 1 (The Elite Selection Filter / Segregation by Academic Preparation):**  
+Disciplines of foreign philology and exact sciences concentrate applicants with a systematically higher level of basic knowledge than mass natural sciences and humanities subjects.  
+* **Result: CONFIRMED.**  
+  * A clear gap in the basic median was identified: English (**144.00**), Chemistry (**143.33**), French (**141.67**), Physics (**141.33**) and German (**140.00**) form an elite cluster. On the other hand, Ukrainian Literature (**133.33**), Biology (**131.67**) and Geography (**131.00**) have significantly weaker basic training.
+  * **Monopoly of English (108,893 students, 37.6% of choice):** absorbed **61.33% of all graduates from the top quartile of Ukraine ($Q_3$)**. The failure rate in the basic block among English-speaking participants is only **5.7%**.
+
+**Hypothesis 2 (The "Safe Haven" Effect / The Phenomenon of Geography and Absorption of Weak Cohorts):**  
+Geography functions as a no-alternative “safe harbor” for at-risk applicants, providing a minimal barrier to entry by truncating the upper tail of the distribution.  
+* **Result: 100% CONFIRMED.**  
+  * Geography (65,960 students, 22.78%) has the lowest baseline median in the country (**131.00**), the highest dropout rate in the mandatory core (**17.2%**), and the lowest share of excellent students (**0.3%**).
+  * Geography absorbed **32.82% of all students in the bottom quartile of Ukraine ($Q_1$)**. Together with Biology (27.63%) and Ukrainian Literature (18.38%), they accumulate **78.83% of the weakest graduates in the country**.
+  * It is practically impossible to fail Geography: the share of zero grades is a record **0.1%**, and the median artificially increases by **+11.00 points** (to 142.00). However, the price is the lack of high grades: only **0.2%** of participants were able to overcome the threshold of 180 points.
+
+![Talent Allocation and Failure Disparity](images/04_talent_allocation_and_failure_disparity.png)
+
+**Hypothesis 3 (Score Premium vs. STEM Penalty):**  
+The scaling of the NMT creates a severe deflation of scores for graduates who choose exact sciences, punishing motivated applicants for choosing a STEM major.  
+* **Result: CONFIRMED (MAIN SYSTEM CONCLUSION).**  
+  * **Physics (8,043 students) and Chemistry (2,616 students) are the only subjects with a negative delta:**  
+    * Physics test takers have the highest proportion of excellent students in the core (**5.2% have $\ge 180$**), but receive a median penalty of **-10.33 points** (median drops from 141.33 to 131.00), the average score collapses by **-20.66 points** (from 140.88 to 120.22), and the crash rate soars to the highest in the campaign — **10.5%**.
+    * Chemistry shows a median drop of **-5.33 points** and a dropout rate of **6.2%**.
+  * **Asymmetrical ranking boosters:**  
+    * **Biology:** provides a whopping bonus of **+14.33 points** to the median (from 131.67 to 146.00) with a dropout rate of **0.1%**;
+    * **German and Spanish:** add **+13.00** and **+12.17** points respectively, providing 7.6% and 13.4% of excellent students.
+
+![Elective Strategy Landscape](images/04_elective_quadrant_landscape.png)
+
+**SQL module tools:**
+* Calculating the national quartiles of the base core through a single isolated CTE with `PERCENTILE_CONT(0.25 | 0.75)` and `CROSS JOIN`.
+* Calculation of national absorption rates through window aggregates `COUNT(*) FILTER (...) / SUM(COUNT(*)) OVER ()`.
+* Parallel calculation of intra-subject performance (`elective_median`, proportion of zeros, proportion of excellent students) and interquartile metrics relative to the kernel.
+* Detecting pure complexity deltas ($\Delta_{\text{Med}} = \text{Med}_{\text{Elective}} - \text{Med}_{\text{Core}}$) at the level of each discipline.
+
+**Files:** [`sql/02_analytics/04_elective_subject_strategy_and_student_cohorts.sql`](sql/02_analytics/04_elective_subject_strategy_and_student_cohorts.sql) · [results (CSV)](results/04_elective_subject_strategy_and_student_cohorts.csv)
 
 ### Module 5 — STEM vs Humanities Asymmetry (`05_asymmetrical_student_stem_vs_humanities`)
 
