@@ -93,10 +93,9 @@ Day-over-Day deltas contain sharp anomalous spikes that exceed the natural varia
 
 **SQL module tools:**
 * Multi-level CTEs for aggregation from the individual attendee level to the session calendar.
-* Robust statistical constructs `PERCENTILE_CONT(0.5) WITHIN GROUP (...) FILTER (...)`.
-* Navigation window offsets `LAG(...) OVER w` for calculating intersession steps.
-* Smoothing frames `ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING`.
-* Cumulative coverage of campaign progress through window aggregates.
+* Robust statistical constructs
+* Window functions (`LAG()`, `ROW_NUMBER()`, window aggregations) and smoothing frames
+* Dates handling & analysis
 
 **Files:** [`sql/02_analytics/01_chronos_and_exam_fatigue_dynamics.sql`](sql/02_analytics/01_chronos_and_exam_fatigue_dynamics.sql) · [results (CSV)](results/01_chronos_and_exam_fatigue_dynamics.csv)
 
@@ -141,16 +140,9 @@ The regions of Ukraine, according to the spatial distribution of knowledge, fall
   * **Donetsk and Luhansk regions:** 0% of participants in historical centers; 100% of the sample is represented by relocated institutions and free periphery with medians of **137.50** and **137.00**, respectively.
 
 **SQL module tools:**
-
-The query is optimized for single-pass analytical processing of large amounts of data:
-1. **Algebraic optimization of the concentration index ($LQ$):**  
-   Instead of the unstable division of two rounded quotients, an equivalent algebraic transformation is applied:
-   $$LQ = \frac{\text{center\_high} \times \text{total\_part}}{\text{total\_high} \times \text{center\_part}}$$
-   This completely eliminated the floating-point accumulation error and reduced the computational cost of the engine.
-2. **Parallel Filtered Aggregation:**  
-   Using syntax `COUNT(*) FILTER (...)` and `PERCENTILE_CONT(0.5) WITHIN GROUP (...) FILTER (...)` allowed to combine the indicators of total volume, center and periphery in a single CTE without difficult `SELF-JOIN`.
-3. **Consolidation of the metropolitan area:**  
-   Conditional merger `м.Київ` and `Київська область` solved the problem of an isolated metropolitan enclave by forming a representative metropolitan model with 37,946 participants.
+* Aggregation functions (`AVG()`, `COUNT()`, `BOOL_OR()`) with `FILTER`
+* `CASE WHEN` classifications
+* NULL handling with `NULLIF()`
 
 **Files:** [`sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql`](sql/02_analytics/02_capital_monopoly_and_regional_centralization.sql) · [results (CSV)](results/02_capital_monopoly_and_regional_centralization.csv)
 
@@ -190,10 +182,8 @@ Despite the systemic backwardness of rural areas, a large-scale cluster of rural
 ![Rural School Archetypes](images/03_rural_school_archetypes_micro.png)
 
 **SQL module tools:**
-* Cascade calculation of quantiles through `PERCENTILE_CONT(0.25 | 0.50 | 0.75) WITHIN GROUP (...)`.
+* Cascade calculation of quantiles
 * Calculating the interquartile range ($IQR$) and the coefficient of variation ($CV = \text{STDDEV} / \text{AVG}$) directly in aggregate queries.
-* Multi-level CTE with generation of dynamic national benchmarks (`national_rural_median`, `national_urban_median`) and cross-connection (`CROSS JOIN`).
-* Boolean predicate logic `BOOL_OR(mandatory_avg_score >= 180)` to isolate anomalies of intra-school segregation.
 * Window coating particles through a single-pass `COUNT(*) / SUM(COUNT(*)) OVER ()`.
 
 **Files:** [`sql/02_analytics/03_resilience_gap_and_rural_polarization.sql`](sql/02_analytics/03_resilience_gap_and_rural_polarization.sql) · results: [`macro (CSV)`](results/03_resilience_gap_and_rural_polarization_macro.csv) · [`meso (CSV)`](results/03_resilience_gap_and_rural_polarization_meso.csv) · [`micro (CSV)`](results/03_resilience_gap_and_rural_polarization_micro.csv)
@@ -231,16 +221,54 @@ The scaling of the NMT creates a severe deflation of scores for graduates who ch
 
 **SQL module tools:**
 * Calculating the national quartiles of the base core through a single isolated CTE with `PERCENTILE_CONT(0.25 | 0.75)` and `CROSS JOIN`.
-* Calculation of national absorption rates through window aggregates `COUNT(*) FILTER (...) / SUM(COUNT(*)) OVER ()`.
-* Parallel calculation of intra-subject performance (`elective_median`, proportion of zeros, proportion of excellent students) and interquartile metrics relative to the kernel.
-* Detecting pure complexity deltas ($\Delta_{\text{Med}} = \text{Med}_{\text{Elective}} - \text{Med}_{\text{Core}}$) at the level of each discipline.
+* Advanced percentage calculations and aggregations
 
 **Files:** [`sql/02_analytics/04_elective_subject_strategy_and_student_cohorts.sql`](sql/02_analytics/04_elective_subject_strategy_and_student_cohorts.sql) · [results (CSV)](results/04_elective_subject_strategy_and_student_cohorts.csv)
 
-### Module 5 — STEM vs Humanities Asymmetry (`05_asymmetrical_student_stem_vs_humanities`)
+### Module 5 — Student Disciplinary Asymmetry: STEM vs. Humanities (`05_asymmetrical_student_stem_vs_humanities`)
 
-**Focus:** TBD
-*Hypotheses, tools, results — TBD.*
+**Focus:** exploring the intrapersonal gap between the sciences and the humanities at the level of the individual student ($\Delta_{\text{Asymmetry}} = \text{score\_math} - \frac{\text{score\_ukr} + \text{score\_hist}}{2}$), psychometric typing of graduates into 5 intellectual archetypes, identification of gender-spatial segregation, and cross-analysis of the choice of the 4th subject.
+- **Evaluated vectors:** STEM vector (Mathematics) vs. Humanities core (Ukrainian language + History of Ukraine).
+
+**Hypothesis 1 (The Asymmetry Imbalance):**  
+The distribution of asymmetry among Ukrainian graduates is sharply shifted towards humanitarian thinking; the share of pronounced humanitarians is many times higher than the share of pure STEM specialists.  
+* **Result: CONFIRMED (RATIO 10.4 : 1).**  
+  * **Humanities profile:** accounts for **23.1% of the sample (66,985 students)** with an average gap $\Delta = \mathbf{-28.5}$ child ($\text{Math} = 123.3$ vs $\text{Hum} = 151.8$).
+  * **STEM majors:** make up only **2.2% of the sample (6,462 students)** with a median gap $\Delta = \mathbf{+24.4}$ child ($\text{Math} = 168.2$ vs $\text{Hum} = 143.8$).
+  * For every pronounced “techie” in Ukraine, there are over 10 pronounced “humanities.” Even in the “Balanced Base” group (51.7% of the sample), the average delta is **-8.9 points** in favor of language and history.
+  * **Gender Polarity:** STEM majors are **67.6% male** (2:1 skew), while Humanities majors are **64.5% female**. The Balanced group is completely equal (49.5% female / 50.5% male).
+
+**Hypothesis 2 (The Universalist Scarcity):**  
+Academic universals ($\ge 160$ points in both directions) is a rare elite, monopolized by urban educational institutions.  
+* **Result: CONFIRMED AND EXTENDED.**  
+  * Only **4.7% (13,665 students)** achieved "Academic All-Rounder" status with a near-perfect balance of top scores: Mathematics — **176.8**, Humanities — **175.2** ($\Delta = +1.6$).
+  * **Urban monopoly:** **86.4% of Universals** live in cities, and only **13.0%** live in villages (a deficit of rural representation of 1.6 times compared to the base population structure).
+  * **Women's paradox:** despite the dominance of boys in the pure STEM cluster, among the highest level of intellectual capital (Universals) **58.9% are women**.
+
+**Hypothesis 3 (The Asymmetric Safety Floor):**  
+The basic level of training between disciplines is asymmetrical: the humanities core has a stable bottom, while mathematics demonstrates a catastrophic risk of collapse.  
+* **Result: 100% CONFIRMED (SYSTEMIC PHENOMENON).**  
+  * **Academic risk group (52,763 students, 18.2%):** the average score in mathematics collapses to a catastrophic **38.3 points** (massive zero grades beyond the threshold), while humanities subjects maintain an acceptable level **128.5 points**. The internal gap is a record **-90.2 points**.
+  * For STEM majors, there is no such thing as a humanities failure: their average score in language and history is **143.8 points** (above the national average). Mathematics is the only hard selective barrier in the campaign.
+
+![Archetypes Asymmetry Demographics](images/05_archetypes_asymmetry_demographics.png)
+
+**In addition(Strategic Elective Selection: Game Theory over Vocation):**
+The 4th elective exam functions not as a vocational preference indicator, but as a game-theoretic utility optimization problem. Candidates strategically balance university admission score inflation against the catastrophic penalty of failing the cutoff threshold.
+
+* **Universal Elite (4.7% | N=13,665):** Strongly select for high-yield competitive admissions. **66.4% choose English** (mean: 169.5), followed by **Biology at 10.6%** (mean: 178.9, catering to top-tier medical tracks). Only **8.5% opt for Physics**, despite achieving elite scores (mean: 162.5).
+* **STEM Specialists (2.2% | N=6,462): The Self-Cannibalization Paradox.** Over **84% of students with clear algorithmic dominance abandon STEM electives**. Only **13.9% select Physics** and **1.8% select Chemistry**. Instead, **52.1% migrate to English** (mean: 153.2) and **15.4% hedge with Geography** (mean: 148.0) to evade the strict scoring deflation of technical subjects.
+* **Humanities Profile (23.1% | N=66,985):** Exhibit a classic liberal arts profile, splitting selections between **English (41.8%)** and **Ukrainian Literature (20.7%)**, with a secondary safety hedge into **Geography (18.2%)** and **Biology (16.3%)**. Physics adoption is virtually absent (**0.9%**).
+* **Balanced Baseline (51.7% | N=149,717):** Mirror the overall macro distribution with a pragmatic tilt: **39.8% English**, **23.0% Geography**, and **19.7% Biology**, demonstrating broad reliance on general subjects with moderate grade guarantees.
+* **Academic Risk Group (18.2% | N=52,763): The Flight to Safety.** Strongly avoid high-barrier subjects, concentrating **61.0% of their total volume into Geography (33.0%) and Biology (28.0%)**. These subjects offer near-zero failing rates (0.1% nationwide cutoff failure) and supply an artificial grade cushion (+11 to +14 points above baseline ability). The **2.3% who mistakenly selected Physics collapsed to a mean of 83.8 points**.
+
+![Behavioral Strategy Matrix Heatmap](images/05_behavioral_strategy_matrix_heatmap.png)
+
+**SQL module tools:**
+* Parallel aggregation of gender (`women_pct`, `men_pct`) and spatial (`rural_pct`, `city_pct`) particles through conditional `FILTER`.
+* Two-level window division `DENSE_RANK() OVER (PARTITION BY archetype ORDER BY COUNT(*) DESC)` for matrix analysis of behavioral choices.
+
+**Files:** [`sql/02_analytics/05_asymmetrical_student_stem_vs_humanities.sql`](sql/02_analytics/05_asymmetrical_student_stem_vs_humanities.sql) · results: [`archetypes (CSV)`](results/05_asymmetrical_student_stem_vs_humanities_1.csv) · [`electives by archetype (CSV)`](results/05_asymmetrical_student_stem_vs_humanities_2.csv)
 
 ---
 
@@ -260,4 +288,89 @@ The scaling of the NMT creates a severe deflation of scores for graduates who ch
 
 ## 4. Conclusions and practical value (Key Takeaways)
 
-*The section will be supplemented after the completion of all 5 modules — a summary of the main conclusions and their practical value for regulators (MES, UCEQA) and applicants.*
+A large-scale study of the 2025 NMT results array using analytical SQL tools allowed us to go beyond the traditional superficial analysis of "average scores" and empirically prove that educational inequality in Ukraine is systemically constructed. 
+
+Below are the 5 main structural conclusions of the project and their applied significance for the state's educational policy.
+
+---
+
+### I. Debunking System Myths of Standardized Testing
+
+1. **The Myth of “Task Origins” and Unstable Session Difficulty (Module 1):**
+   * *Imagination:* The sharp fluctuations in performance between June days (the range of inter-day jumps from **-15.60** to **+17.29** points) were attributed in society to "test showers" or random inequality of options.
+   * *Empirical reality:* Fluctuations are of an artificial nature due to the segregation of the contingent. The June calendar campaign split into two parallel clusters: 5 “elite” days of foreign language testing (average score **144.87**, dropout rate **5.4%**) and 9 “mass” days of geography and literature (average score **132.50**, dropout rate **14.1%**). The correlation between the workload of the day and the average score reaches **$r = -0.80$**.
+
+2. **The Rural Lyceum Illusion (Module 3):**
+   * *Imagination:* The massive reorganization of rural secondary schools into "lyceums" as part of educational reform raises the academic level of the institutions.
+   * *Empirical reality:* **absolute statistical parity** has been found between newly established rural lyceums (39.8 thousand students) and classical secondary schools (13.9 thousand students). Their medians are identical (**134.33** vs **134.33**), the lower quartile $Q_1$ does not differ (**123.67** vs **123.00**), and the share of excellent students in regular secondary schools is even higher (**1.02%** vs **0.77%**). The legal change in the sign did not create added value without changing the educational environment.
+
+3. **Resilience of rural education against the myth of "continuous depression" (Module 3):**
+   * Despite the general lag of the village from the city (the median is 3.66 points lower, the risk of collapse is 1.4 times higher), a third of the rural network — **718 schools (32.2%)**, which graduated **16.7 thousand students**, — are **full-fledged flagships of sustainability**. Their average median (**142.35**) exceeds the national urban level by **+5.02 points (137.33)**. At the same time, the myth of the "school of one genius" (where there is a 180-pointer against the background of the institution's failure) was confirmed for only 2.6% of rural institutions.
+
+---
+
+### II. Spatial segregation: the failure of the educational bottom of the periphery
+
+The study of the interaction "Regional Center vs. Periphery" (Module 2) showed that the main spatial problem of Ukraine is not the concentration of excellent students, but the **critical insecurity of the basic level of knowledge in the districts**:
+
+* **Failure of the educational bottom:** In all 22 representative regions, the median of the center is higher than the median of the districts (national gap — **+4.52 points**, with peaks of **+7.50** in Chernihiv region and **+7.00** in Kirovohrad region and Zakarpattia).
+* **Double risk of failure:** The risk of failing a mandatory exam in the periphery is systematically higher by **1.51 times**, and in Chernihiv and Kirovohrad regions this figure reaches **1.99x** and **1.93x**, respectively. The correlation between the median gap and the failure rate is **$r = 0.81$**.
+* **Polycentric precedent of Volyn:** Volyn region became the only region of Ukraine with a balanced structure ($LQ = 0.97$), where the share of 180-score students in the districts (**1.57%**) turned out to be higher than in the regional center (**1.50%**). Strong lyceums in Kovel, Novovolynsk, and Volodymyr formed a horizontal decentralized network, proving the possibility of overcoming the monopoly of the metropolis.
+
+---
+
+### III. Game Theory in Subject Choice: The Destructive STEM Penalty Trap
+
+The most critical conclusion of the project (Modules 4 and 5) for the economy and defense capability is the identification of **systemic discrimination against engineering and technical disciplines**:
+
+1. **The STEM Penalty on the NMT Scale:**
+   * Selective disciplines operate under diametrically opposed rules of the game:
+     * **Physics and Chemistry act as a deflationary penalty:** physics applicants have the highest basic preparation in the country (5.2% of excellent students in the core), but the physics exam itself collapses their median by **-10.33 points**, the average score by **-20.66 points**, and the dropout rate jumps to a record **10.5%**.
+     * **Geography and Biology act as inflationary boosters:** they artificially add **+11.00** and **+14.33 points** to the median applicant's score with almost zero risk of dropout (**0.1%**).
+2. **Rational self-cannibalization of STEM capital:**
+   * Students react to the rules of the game as rational economic agents: **over 84% of natural "techies" (STEM specialists) refuse physics and chemistry**. Only 13.9% of them choose physics, while **52.1% migrate to English**, and **15.4% choose geography** to artificially protect a competitive score.
+3. **Geography as a country's main "safe harbor":**
+   * Geography accumulated **32.8% of the weakest students in Ukraine ($Q_1$)** and a third of the Academic Risk Group, providing a 99.9% guarantee of overcoming the threshold score at the cost of a complete absence of excellent students (only 0.2% exceeded 180 points).
+
+---
+
+### IV. Psychometric Structure: The Shortage of Universals and the Fragility of Mathematics
+
+Segmentation of graduates by intrapersonal asymmetry (Module 5) showed the real balance of intellectual capital:
+
+* **Humanities dominance (10.4 : 1):** For every expressed STEM specialist (2.2% of the population, average delta $\Delta = +24.4$) there are more than ten pronounced humanitarians (23.1% of the population, average delta $\Delta = -28.5$).
+* **Academic all-rounders as a scarce elite:** Only **4.7% of graduates (13.7 thousand people)** are able to show elite results ($\ge 160$) simultaneously in the exact sciences and humanities. This capital is **86.4% urbanized** (universals are almost twice as rare in the countryside). Moreover, among the Universals, **female dominance (58.9%)** is recorded, despite the fact that in the narrow STEM sector, men prevail (67.6%).
+* **Asymmetry of the protective barrier:** The academic risk group (18.2% of graduates) collapses solely because of **mathematics (average score 38.3 versus 128.5 in the humanities block)**. Basic verbal literacy is guaranteed by high school to all students, while the mathematical bottom is completely permeable.
+
+---
+
+### V. Practical recommendations for educational stakeholders
+
+#### 1. For the Ministry of Education and Science (MES) and UCEQA:
+* **Reform of scaling and leveling of difficulty (Test Equating):** It is necessary to move away from primitive tables of conversion of raw scores to psychometric equalization according to the IRT (Item Response Theory) model. Passing physics or chemistry should not automatically take away 10–15 points of the competitive rating from an applicant compared to geography or biology.
+* **Increase in weightings for STEM:** In the Admission Requirements for Technical, Engineering and IT majors, the weighting for Physics/Chemistry should be significantly higher to compensate applicants for academic risk.
+* **Audit of high school reform and support for rural flagships:** Stop the formal change of status of institutions. State investments and subventions should be targeted at supporting the identified **718 rural flagship schools** as natural centers of attraction of educational districts.
+* **Emergency intervention in basic mathematics education:** Since mathematics accounts for 90% of dropouts in the at-risk group, diagnostic testing after grade 9 and targeted catch-up programs in rural communities are needed.
+
+#### 2. For applicants and educators:
+* **Pragmatic assessment of subject strategies:** The choice of elective discipline should take into account the target specialty: if the formula for calculating the competitive score in a particular higher education institution does not give physics a significant coefficient priority, taking English or geography remains a mathematically more advantageous strategy for minimizing risks.
+* **Development of universal skills:** The market advantage of future specialists is concentrated in the area of ​​​​a harmonious combination of algorithmic thinking and verbal communication - a cluster where less than 5% of the country's graduates are currently located.
+
+## 5. Developed SQL concepts and technical stack
+
+* **Data design and normalization:** modeling the Star Schema (3NF), deploying sparse member data into a long fact table (Unpivot), and imposing integrity constraints.
+* **Analytical data marts:** isolating cleansing and pre-aggregation business logic in marts (`VIEW`) at the levels of the individual exam and the student profile.
+* **Robust descriptive statistics:** calculation of nonparametric quantiles, median, and interquartile range (IQR) using `PERCENTILE_CONT(...) WITHIN GROUP (ORDER BY ...)`.
+* **One-pass conditional aggregation:** syntax usage `FILTER (WHERE ...)` for simultaneous calculation of polar group metrics (center/periphery, gender) in a single pass without using slow `SELF-JOIN`.
+* **Analytical window functions:** inline navigation by testing days (`LAG`), smoothing trends with a moving average (`ROWS BETWEEN`), cumulative sums, ranking (`DENSE_RANK`) and calculating market coverage shares through an unfixed window `OVER ()`.
+* **Modular query pipelines:** decomposition of complex analytical tasks through multi-level CTEs and adherence to the DRY principle thanks to named windows (`WINDOW w AS (...)`).
+* **Cascading business logic and validation:** multi-factor school categorization and student typology using `CASE WHEN`, as well as Boolean detection of exam failure due to `BOOL_OR()`.
+* **Working with dates and time series:** extracting calendar attributes via `EXTRACT()`, parsing of testing phases and grouping by days of the week.
+* **Table Joins and Benchmarking:** combining facts with dimensions and safely pulling global medians to each row through `CROSS JOIN` with single-line CTEs.
+* **Data cleaning and calculation protection:** handling missing values `NULL`, safe sharing without risk `division by zero` through `NULLIF()`.
+* **Optimization of queries and calculations:** algebraic simplification of the concentration index (LQ) calculation into a single fraction to eliminate errors `FLOAT`, moving resource-intensive percentile sorting into intermediate steps, and analyzing execution plans.
+
+## 6. Technical Details
+- **Database:** PostgreSQL
+- **Analysis Tools:** PostgreSQL, Dbeaver, VS Code
+- **Visualization:** Gemini

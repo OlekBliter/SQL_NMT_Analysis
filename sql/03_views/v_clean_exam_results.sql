@@ -20,6 +20,7 @@ SELECT
         WHEN p.ter_type = 'селище, село' THEN 'Село'
         ELSE 'Не визначено'
     END AS macro_location,
+    p.gender,
 
     i.institution_id,
     i.institution_name,
