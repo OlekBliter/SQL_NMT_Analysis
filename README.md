@@ -80,6 +80,8 @@ Day-over-Day deltas contain sharp anomalous spikes that exceed the natural varia
   * Enormous intraday volatility detected: standard deviation $\Delta_{\text{DoD}}$ amounted to **11.69 points** (with an amplitude of fluctuations from **-15.60** to **+17.29** points between adjacent days).
   * The source of the fluctuations is not the random complexity of the tasks, but the **bimodal segregation of testing days for the 4th sample subject** (correlation of the workload of the day and the average score: $r = -0.80$).
 
+![Chronos Daily Dynamics](images/01_chronos_daily_dynamics.png)
+
 | June Session Cluster | Num. of Sessions | Avg. Participants Per Day | Avg. Graduate Score 2025 | Median | Avg. Fail Rate | Test Days |
 |:---|:---:|:---:|:---:|:---:|:---:|:---|
 | **Academic ("Foreign Languages")** | 5 | 15,557 | **144.87** | **145.13** | **5.44%** | 02.06, 05.06, 12.06, 16.06, 18.06 |
@@ -111,11 +113,15 @@ Concentration of academic elite (average score $\ge 180$ in all disciplines) in 
   * Peak monopoly indicators were recorded in **Chernihiv ($LQ = 1.68$)**, **Transcarpathian ($LQ = 1.64$)** and **Rivne ($LQ = 1.61$)** regions.
   * At the same time, no region crossed the threshold of extreme hypermonopoly ($\ge 1.80$), since averaging grades across 4 disciplines naturally smooths out peak grades in individual subjects.
 
+![Academic Monopoly vs Periphery Risk](images/02_monopoly_lq_vs_fail_ratio.png)
+
 **Hypothesis 2 (The Periphery Floor Gap):**  
 The periphery loses to the center not only in terms of the share of excellent students, but also demonstrates a critical decline in the basic level: a significantly lower median and an increased risk of failing the test (Fail Rate).
 * **Result: 100% CONFIRMED (MAIN SYSTEM CONCLUSION).**
   * In **all 22 studied regions** the median score of the center exceeds the median of the periphery ($\Delta_{\text{Median}} > 0$). The average national gap is **+4.52 points**.
   * In **all 22 regions** the risk of failing the test in the periphery is significantly higher than in the regional center (`fail_rate_ratio` $> 1.0$, average — **1.51x**).
+
+![The Periphery Floor Gap](images/02_periphery_floor_gap_dumbbell.png)
 
 **Hypothesis 3 (Regional Typology & Outliers):**  
 The regions of Ukraine, according to the spatial distribution of knowledge, fall into stable topological models with pronounced poles and anomalies.
